@@ -5,6 +5,8 @@ var vmNames = ['vm1', 'vm2']
 var adminpwd = 'azureuser12345!'
 var adminUsename = 'azureuser'
 var vpngwName = 'vpn-gw'
+var storaheAccountName = 'learning1011'
+var  dnsZoneName = 'privatelink.blob.core.windows.net'
 
 
 // create hub vnet
@@ -18,7 +20,7 @@ module dns_resolver 'modules/private-dns-resolve.bicep' = {
   }
 }
 
-// create VPN Gateway
+// // create VPN Gateway
 
 module vpnGw 'modules/vpn-gateway.bicep' = {
   params: {
@@ -109,6 +111,38 @@ module routeTableRoute 'modules/route-table-routes.bicep' = {
   params: {
     nextHopIp: firewall.outputs.firewallPrivateIp
     routeTableName: routeTable.outputs.routeTableName
+  }
+}
+
+// create storage account 
+
+// create dns zone
+
+module dnszone 'modules/private-dns.bicep' = {
+  params: {
+    dnsZoneName: dnsZoneName
+  }
+}
+
+module sroragAccout1 'modules/storage-account.bicep' = {
+  dependsOn: [dnszone]
+  params: {
+    name: '${storaheAccountName}1'
+    subnetId: resourceId('Microsoft.Network/virtualNetworks/subnets', spoke_vnet_names[0], subnet_names[1])
+    hubVnet: hubvnet.outputs.vnetName
+    spokeVnet: spoke_vnet_names[0]
+    dnsZoneName: dnsZoneName
+  }
+}
+
+module sroragAccout2 'modules/storage-account.bicep' = {
+  dependsOn: [dnszone, sroragAccout1]
+  params: {
+    name: '${storaheAccountName}2'
+    subnetId: resourceId('Microsoft.Network/virtualNetworks/subnets', spoke_vnet_names[1], subnet_names[1])
+    hubVnet: hubvnet.outputs.vnetName
+    spokeVnet: spoke_vnet_names[1]
+    dnsZoneName: dnsZoneName
   }
 }
 
